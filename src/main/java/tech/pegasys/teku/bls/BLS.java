@@ -153,6 +153,39 @@ public class BLS {
             .collect(Collectors.toList());
     return signature.getSignature().verify(publicKeyMessagePairs);
   }
+  
+  /**
+   * Verifies an aggregate BLS signature against a list of distinct messages using the list of
+   * public keys.
+   *
+   * <p>https://tools.ietf.org/html/draft-irtf-cfrg-bls-signature-02#section-3.1.1
+   *
+   * <p>The standard says to return INVALID, that is, false, if the list of public keys is empty.
+   * See also discussion at https://github.com/ethereum/eth2.0-specs/issues/1713
+   *
+   * <p>We also return false if any of the messages are duplicates.
+   *
+   * @param publicKeys The list of public keys, not null
+   * @param messages The list of messages to verify, all distinct, not null
+   * @param signature The aggregate signature, not null
+   * @return True if the verification is successful, false otherwise
+   */
+  public static boolean aggregateVerify(
+      List<BLSPublicKey> publicKeys, List<Bytes> messages, BLSSignature signature, Bytes dst) {
+    checkArgument(
+        publicKeys.size() == messages.size(),
+        "Number of public keys and number of messages differs.");
+    if (publicKeys.isEmpty()) return false;
+    // Check that there are no duplicate messages
+    if (new HashSet<>(messages).size() != messages.size()) return false;
+    List<PublicKeyMessagePair> publicKeyMessagePairs =
+        Streams.zip(
+                publicKeys.stream(),
+                messages.stream(),
+                (pk, msg) -> new PublicKeyMessagePair(pk.getPublicKey(), msg))
+            .collect(Collectors.toList());
+    return signature.getSignature().verify(publicKeyMessagePairs, dst, 0);
+  }
 
   /**
    * Verifies an aggregate BLS signature against a message using the list of public keys.

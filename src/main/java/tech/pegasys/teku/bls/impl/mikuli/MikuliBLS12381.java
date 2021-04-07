@@ -180,6 +180,25 @@ public class MikuliBLS12381 implements BLS12381 {
     }
     return coreAggregateVerify(publicKeys, messages, signature);
   }
+  
+  /**
+   * Verifies an aggregate signature against a list of distinct messages using the list of public
+   * keys.
+   *
+   * @param publicKeys The list of public keys, not null
+   * @param messages The list of messages to verify, all distinct, not null
+   * @param signature The aggregate signature, not null
+   * @return True if the verification is successful, false otherwise
+   */
+  public static boolean aggregateVerify(
+      List<MikuliPublicKey> publicKeys, List<Bytes> messages, MikuliSignature signature, Bytes dst) {
+    // Check that there are no duplicate messages
+    Set<Bytes> set = new HashSet<>();
+    for (Bytes message : messages) {
+      if (!set.add(message)) return false;
+    }
+    return coreAggregateVerify(publicKeys, messages, signature, dst);
+  }
 
   /**
    * Verifies an aggregate signature against a message using the list of public keys.
@@ -238,6 +257,22 @@ public class MikuliBLS12381 implements BLS12381 {
       List<MikuliPublicKey> publicKeys, List<Bytes> messages, MikuliSignature signature) {
     List<G2Point> hashesInG2 =
         messages.stream().map(m -> new G2Point(hashToG2(m))).collect(Collectors.toList());
+    return signature.aggregateVerify(publicKeys, hashesInG2);
+  }
+  
+  /**
+   * Verifies an aggregate signature against a list of distinct messages using the list of public
+   * keys.
+   *
+   * @param publicKeys The list of public keys, not null
+   * @param messages The list of messages to verify, all distinct, not null
+   * @param signature The aggregate signature, not null
+   * @return True if the verification is successful, false otherwise
+   */
+  public static boolean coreAggregateVerify(
+      List<MikuliPublicKey> publicKeys, List<Bytes> messages, MikuliSignature signature, Bytes dst) {
+    List<G2Point> hashesInG2 =
+        messages.stream().map(m -> new G2Point(hashToG2(m, dst))).collect(Collectors.toList());
     return signature.aggregateVerify(publicKeys, hashesInG2);
   }
 

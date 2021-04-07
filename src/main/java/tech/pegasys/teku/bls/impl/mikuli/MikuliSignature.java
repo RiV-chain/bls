@@ -149,6 +149,16 @@ public class MikuliSignature implements Signature {
         keysToMessages.stream().map(PublicKeyMessagePair::getMessage).collect(toList()),
         this);
   }
+  
+  @Override
+  public boolean verify(List<PublicKeyMessagePair> keysToMessages, Bytes dst, int index) {
+    return MikuliBLS12381.aggregateVerify(
+        keysToMessages.stream()
+            .map(km -> MikuliPublicKey.fromPublicKey(km.getPublicKey()))
+            .collect(toList()),
+        keysToMessages.stream().map(PublicKeyMessagePair::getMessage).collect(toList()),
+        this, dst);
+  }
 
   @Override
   public boolean verify(List<PublicKey> publicKeys, Bytes message) {

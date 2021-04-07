@@ -42,6 +42,15 @@ public interface Signature {
    * @return True if the verification is successful, false otherwise
    */
   boolean verify(List<PublicKeyMessagePair> keysToMessages);
+  
+  /**
+   * Verify that this aggregated signature is correct for the given pairs of public keys and
+   * messages.
+   *
+   * @param keysToMessages the list of public key and message pairs
+   * @return True if the verification is successful, false otherwise
+   */
+  boolean verify(List<PublicKeyMessagePair> keysToMessages, Bytes dst, int index);
 
   /**
    * Verifies this aggregate signature against a message using the list of public keys.

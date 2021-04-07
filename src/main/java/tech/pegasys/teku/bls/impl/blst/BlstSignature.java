@@ -114,6 +114,31 @@ public class BlstSignature implements Signature {
       p2Affine.delete();
     }
   }
+  
+  private static void blstPrepareVerifyAggregated(
+	      BlstPublicKey pubKey, Bytes message, pairing ctx, BlstSignature blstSignature, Bytes dst) {
+
+	    p2 g2Hash = HashToCurve.hashToG2(message);
+	    p2_affine p2Affine = new p2_affine();
+
+	    try {
+	      blst.p2_to_affine(p2Affine, g2Hash);
+
+	      BLST_ERROR ret =
+	          blst.pairing_aggregate_pk_in_g1(
+	              ctx,
+	              pubKey.ecPoint,
+	              blstSignature == null ? null : blstSignature.ec2Point,
+	              1,
+	              message.toArrayUnsafe(),
+	              dst.toArrayUnsafe(),
+	              null);
+	      if (ret != BLST_ERROR.BLST_SUCCESS) throw new IllegalArgumentException("Error: " + ret);
+	    } finally {
+	      g2Hash.delete();
+	      p2Affine.delete();
+	    }
+	  }
 
   private static boolean blstCompleteVerifyAggregated(pairing ctx) {
     try {
@@ -156,6 +181,25 @@ public class BlstSignature implements Signature {
         Bytes message = keysToMessages.get(i).getMessage();
         BlstSignature signature = i == 0 ? this : null;
         blstPrepareVerifyAggregated(publicKey, message, ctx, signature);
+      }
+      return blstCompleteVerifyAggregated(ctx);
+    } finally {
+      ctx.delete();
+    }
+  }
+  
+  @Override
+  public boolean verify(List<PublicKeyMessagePair> keysToMessages, Bytes dst, int index) {
+
+    pairing ctx = new pairing();
+
+    try {
+      blst.pairing_init(ctx);
+      for (int i = 0; i < keysToMessages.size(); i++) {
+        BlstPublicKey publicKey = (BlstPublicKey) keysToMessages.get(i).getPublicKey();
+        Bytes message = keysToMessages.get(i).getMessage();
+        BlstSignature signature = i == 0 ? this : null;
+        blstPrepareVerifyAggregated(publicKey, message, ctx, signature, dst);
       }
       return blstCompleteVerifyAggregated(ctx);
     } finally {
