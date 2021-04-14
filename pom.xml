@@ -10,7 +10,7 @@
  <repositories>
  	<repository>
         <id>consensys</id>
-        <url>https://cloudsmith.io/~consensys/repos/teku/packages/</url>
+        <url>https://artifacts.consensys.net/public/maven/maven/</url>
         <releases>
            <enabled>true</enabled>
         </releases>
@@ -52,7 +52,7 @@
 	<dependency>
 	  <groupId>tech.pegasys</groupId>
 	  <artifactId>jblst</artifactId>
-	  <version>0.3.3-1</version>
+	  <version>0.3.3</version>
 	</dependency>
 	<!-- dependency>
 	  <groupId>tech.pegasys</groupId>
