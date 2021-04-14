@@ -20,16 +20,15 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.tuweni.bytes.Bytes;
+import supranational.blst.BLST_ERROR;
+import supranational.blst.P2;
+import supranational.blst.P2_Affine;
+import supranational.blst.Pairing;
 import tech.pegasys.teku.bls.impl.PublicKey;
 import tech.pegasys.teku.bls.impl.PublicKeyMessagePair;
 import tech.pegasys.teku.bls.impl.Signature;
-import tech.pegasys.teku.bls.impl.blst.swig.BLST_ERROR;
-import tech.pegasys.teku.bls.impl.blst.swig.blst;
-import tech.pegasys.teku.bls.impl.blst.swig.p2;
-import tech.pegasys.teku.bls.impl.blst.swig.p2_affine;
-import tech.pegasys.teku.bls.impl.blst.swig.pairing;
 
-public class BlstSignature implements Signature {
+class BlstSignature implements Signature {
   private static final int COMPRESSED_SIG_SIZE = 96;
 
   private static final Bytes INFINITY_BYTES =
@@ -41,8 +40,7 @@ public class BlstSignature implements Signature {
   static final BlstSignature INFINITY;
 
   static {
-    p2_affine ec2Point = new p2_affine();
-    blst.p2_uncompress(ec2Point, INFINITY_BYTES.toArrayUnsafe());
+    P2_Affine ec2Point = new P2_Affine(INFINITY_BYTES.toArrayUnsafe());
     INFINITY = new BlstSignature(ec2Point, true);
   }
 
@@ -54,179 +52,134 @@ public class BlstSignature implements Signature {
         compressed.size() == COMPRESSED_SIG_SIZE,
         "Expected " + COMPRESSED_SIG_SIZE + " bytes of input but got %s",
         compressed.size());
-    p2_affine ec2Point = new p2_affine();
     try {
-      BLST_ERROR rc = blst.p2_uncompress(ec2Point, compressed.toArrayUnsafe());
-      return new BlstSignature(ec2Point, rc == BLST_ERROR.BLST_SUCCESS);
+      P2_Affine ec2Point = new P2_Affine(compressed.toArrayUnsafe());
+      return new BlstSignature(ec2Point, true);
     } catch (Exception e) {
-      ec2Point.delete();
-      throw e;
+      return new BlstSignature(new P2_Affine(), false);
+    }
+  }
+
+  static BlstSignature fromSignature(Signature signature) {
+    if (signature instanceof BlstSignature) {
+      return (BlstSignature) signature;
+    } else {
+      return fromBytes(signature.toBytesCompressed());
     }
   }
 
   public static BlstSignature aggregate(List<BlstSignature> signatures) {
-    List<BlstSignature> finiteSignatures =
-        signatures.stream().filter(sig -> !sig.isInfinity()).collect(Collectors.toList());
 
     Optional<BlstSignature> invalidSignature =
-        finiteSignatures.stream().filter(s -> !s.isValid).findFirst();
+        signatures.stream().filter(s -> !s.isValid).findFirst();
     if (invalidSignature.isPresent()) {
       throw new IllegalArgumentException(
           "Can't aggregate invalid signature: " + invalidSignature.get());
     }
 
-    p2 sum = new p2();
-    try {
-      blst.p2_from_affine(sum, finiteSignatures.get(0).ec2Point);
-      for (int i = 1; i < finiteSignatures.size(); i++) {
-        blst.p2_add_affine(sum, sum, finiteSignatures.get(i).ec2Point);
-      }
-      p2_affine res = new p2_affine();
-      blst.p2_to_affine(res, sum);
-
-      return new BlstSignature(res, true);
-    } finally {
-      sum.delete();
+    P2 sum = new P2();
+    for (BlstSignature finiteSignature : signatures) {
+      sum.aggregate(finiteSignature.ec2Point);
     }
+
+    return new BlstSignature(sum.to_affine(), true);
   }
 
   private static void blstPrepareVerifyAggregated(
-      BlstPublicKey pubKey, Bytes message, pairing ctx, BlstSignature blstSignature) {
+      BlstPublicKey pubKey, Bytes message, Pairing ctx, BlstSignature blstSignature) {
 
-    p2 g2Hash = HashToCurve.hashToG2(message);
-    p2_affine p2Affine = new p2_affine();
-
-    try {
-      blst.p2_to_affine(p2Affine, g2Hash);
-
-      BLST_ERROR ret =
-          blst.pairing_aggregate_pk_in_g1(
-              ctx,
-              pubKey.ecPoint,
-              blstSignature == null ? null : blstSignature.ec2Point,
-              1,
-              message.toArrayUnsafe(),
-              HashToCurve.ETH2_DST.toArrayUnsafe(),
-              null);
-      if (ret != BLST_ERROR.BLST_SUCCESS) throw new IllegalArgumentException("Error: " + ret);
-    } finally {
-      g2Hash.delete();
-      p2Affine.delete();
-    }
-  }
-  
-  private static void blstPrepareVerifyAggregated(
-	      BlstPublicKey pubKey, Bytes message, pairing ctx, BlstSignature blstSignature, Bytes dst) {
-
-	    p2 g2Hash = HashToCurve.hashToG2(message);
-	    p2_affine p2Affine = new p2_affine();
-
-	    try {
-	      blst.p2_to_affine(p2Affine, g2Hash);
-
-	      BLST_ERROR ret =
-	          blst.pairing_aggregate_pk_in_g1(
-	              ctx,
-	              pubKey.ecPoint,
-	              blstSignature == null ? null : blstSignature.ec2Point,
-	              1,
-	              message.toArrayUnsafe(),
-	              dst.toArrayUnsafe(),
-	              null);
-	      if (ret != BLST_ERROR.BLST_SUCCESS) throw new IllegalArgumentException("Error: " + ret);
-	    } finally {
-	      g2Hash.delete();
-	      p2Affine.delete();
-	    }
-	  }
-
-  private static boolean blstCompleteVerifyAggregated(pairing ctx) {
-    try {
-      blst.pairing_commit(ctx);
-      return blst.pairing_finalverify(ctx, null) > 0;
-    } finally {
-      ctx.delete();
+    BLST_ERROR ret =
+        ctx.aggregate(
+            pubKey.ecPoint,
+            blstSignature == null ? null : blstSignature.ec2Point,
+            message.toArrayUnsafe(),
+            new byte[0]);
+    if (ret != BLST_ERROR.BLST_SUCCESS) {
+      throw new IllegalArgumentException("Error: " + ret);
     }
   }
 
-  final p2_affine ec2Point;
+  private static boolean blstCompleteVerifyAggregated(Pairing ctx) {
+    ctx.commit();
+    return ctx.finalverify();
+  }
+
+  final P2_Affine ec2Point;
   private final boolean isValid;
 
-  public BlstSignature(p2_affine ec2Point, boolean isValid) {
+  public BlstSignature(P2_Affine ec2Point, boolean isValid) {
     this.ec2Point = ec2Point;
     this.isValid = isValid;
   }
 
   @Override
   public Bytes toBytesCompressed() {
-    byte[] res = new byte[96];
-    blst.p2_affine_compress(res, ec2Point);
-    return Bytes.wrap(res);
-  }
-
-  @Override
-  public Bytes toBytesUncompressed() {
-    throw new UnsupportedOperationException();
+    return Bytes.wrap(ec2Point.compress());
   }
 
   @Override
   public boolean verify(List<PublicKeyMessagePair> keysToMessages) {
 
-    pairing ctx = new pairing();
-
-    try {
-      blst.pairing_init(ctx);
-      for (int i = 0; i < keysToMessages.size(); i++) {
-        BlstPublicKey publicKey = (BlstPublicKey) keysToMessages.get(i).getPublicKey();
-        Bytes message = keysToMessages.get(i).getMessage();
-        BlstSignature signature = i == 0 ? this : null;
-        blstPrepareVerifyAggregated(publicKey, message, ctx, signature);
-      }
-      return blstCompleteVerifyAggregated(ctx);
-    } finally {
-      ctx.delete();
+    boolean isAnyPublicKeyInfinity =
+        keysToMessages.stream()
+            .anyMatch(pair -> ((BlstPublicKey) pair.getPublicKey()).isInfinity());
+    if (isAnyPublicKeyInfinity) {
+      return false;
     }
+
+    Pairing ctx = new Pairing(true, HashToCurve.ETH2_DST);
+
+    for (int i = 0; i < keysToMessages.size(); i++) {
+      BlstPublicKey publicKey = BlstPublicKey.fromPublicKey(keysToMessages.get(i).getPublicKey());
+      Bytes message = keysToMessages.get(i).getMessage();
+      BlstSignature signature = i == 0 ? this : null;
+      blstPrepareVerifyAggregated(publicKey, message, ctx, signature);
+    }
+    return blstCompleteVerifyAggregated(ctx);
   }
   
   @Override
-  public boolean verify(List<PublicKeyMessagePair> keysToMessages, Bytes dst, int index) {
+  public boolean verify(List<PublicKeyMessagePair> keysToMessages, String dst) {
 
-    pairing ctx = new pairing();
-
-    try {
-      blst.pairing_init(ctx);
-      for (int i = 0; i < keysToMessages.size(); i++) {
-        BlstPublicKey publicKey = (BlstPublicKey) keysToMessages.get(i).getPublicKey();
-        Bytes message = keysToMessages.get(i).getMessage();
-        BlstSignature signature = i == 0 ? this : null;
-        blstPrepareVerifyAggregated(publicKey, message, ctx, signature, dst);
-      }
-      return blstCompleteVerifyAggregated(ctx);
-    } finally {
-      ctx.delete();
+    boolean isAnyPublicKeyInfinity =
+        keysToMessages.stream()
+            .anyMatch(pair -> ((BlstPublicKey) pair.getPublicKey()).isInfinity());
+    if (isAnyPublicKeyInfinity) {
+      return false;
     }
+
+    Pairing ctx = new Pairing(true, dst);
+
+    for (int i = 0; i < keysToMessages.size(); i++) {
+      BlstPublicKey publicKey = BlstPublicKey.fromPublicKey(keysToMessages.get(i).getPublicKey());
+      Bytes message = keysToMessages.get(i).getMessage();
+      BlstSignature signature = i == 0 ? this : null;
+      blstPrepareVerifyAggregated(publicKey, message, ctx, signature);
+    }
+    return blstCompleteVerifyAggregated(ctx);
   }
 
   @Override
   public boolean verify(List<PublicKey> publicKeys, Bytes message) {
     return verify(
         BlstPublicKey.aggregate(
-            publicKeys.stream().map(k -> (BlstPublicKey) k).collect(Collectors.toList())),
+            publicKeys.stream().map(BlstPublicKey::fromPublicKey).collect(Collectors.toList())),
         message);
   }
 
   @Override
   public boolean verify(PublicKey publicKey, Bytes message) {
-    return BlstBLS12381.verify((BlstPublicKey) publicKey, message, this);
+    return BlstBLS12381.verify(BlstPublicKey.fromPublicKey(publicKey), message, this);
   }
 
   @Override
-  public boolean verify(PublicKey publicKey, Bytes message, Bytes dst) {
-    return BlstBLS12381.verify((BlstPublicKey) publicKey, message, this, dst);
+  public boolean verify(PublicKey publicKey, Bytes message, String dst) {
+    return BlstBLS12381.verify(BlstPublicKey.fromPublicKey(publicKey), message, this, dst);
   }
 
   @SuppressWarnings("ReferenceEquality")
-  boolean isInfinity() {
+  @Override
+  public boolean isInfinity() {
     return this == INFINITY;
   }
 
@@ -240,11 +193,9 @@ public class BlstSignature implements Signature {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof Signature)) {
       return false;
     }
-
-    BlstSignature that = (BlstSignature) o;
-    return Objects.equals(toBytesCompressed(), that.toBytesCompressed());
+    return Objects.equals(toBytesCompressed(), ((Signature) o).toBytesCompressed());
   }
 }

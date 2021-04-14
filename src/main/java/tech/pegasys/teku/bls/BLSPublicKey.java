@@ -15,31 +15,19 @@ package tech.pegasys.teku.bls;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes48;
 import org.apache.tuweni.ssz.SSZ;
 import tech.pegasys.teku.bls.impl.PublicKey;
-import tech.pegasys.teku.ssz.sos.SimpleOffsetSerializable;
 
-public final class BLSPublicKey implements SimpleOffsetSerializable {
+public final class BLSPublicKey {
 
-  // The number of SimpleSerialize basic types in this SSZ Container/POJO.
-  public static final int SSZ_FIELD_COUNT = 1;
   public static final int SSZ_BLS_PUBKEY_SIZE = BLSConstants.BLS_PUBKEY_SIZE;
-
-  /**
-   * Generates a compressed, serialized, random, valid public key based on a seed.
-   *
-   * @return PublicKey The public key, not null
-   */
-  public static BLSPublicKey random(int seed) {
-    return BLSKeyPair.random(seed).getPublicKey();
-  }
 
   /**
    * Creates an empty public key (all zero bytes).
@@ -62,16 +50,6 @@ public final class BLSPublicKey implements SimpleOffsetSerializable {
         BLS.getBlsImpl()
             .aggregatePublicKeys(
                 publicKeys.stream().map(BLSPublicKey::getPublicKey).collect(Collectors.toList())));
-  }
-
-  @Override
-  public int getSSZFieldCount() {
-    return SSZ_FIELD_COUNT;
-  }
-
-  @Override
-  public List<Bytes> get_fixed_parts() {
-    return List.of(toSSZBytes());
   }
 
   public static BLSPublicKey fromSSZBytes(Bytes bytes) {
@@ -149,10 +127,7 @@ public final class BLSPublicKey implements SimpleOffsetSerializable {
    * @return the serialization of the compressed form of the signature.
    */
   public Bytes toSSZBytes() {
-    return SSZ.encode(
-        writer -> {
-          writer.writeFixedBytes(toBytesCompressed());
-        });
+    return SSZ.encode(writer -> writer.writeFixedBytes(toBytesCompressed()));
   }
 
   public Bytes48 toBytesCompressed() {

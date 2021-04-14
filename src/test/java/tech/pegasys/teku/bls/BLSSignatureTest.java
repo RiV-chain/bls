@@ -13,43 +13,16 @@
 
 package tech.pegasys.teku.bls;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.ssz.SSZ;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import tech.pegasys.teku.bls.impl.blst.BlstBLS12381;
-import tech.pegasys.teku.bls.impl.mikuli.MikuliBLS12381;
 
 abstract class BLSSignatureTest {
-
-  public static class BlstSignatureTest extends BLSSignatureTest {
-    @BeforeAll
-    public static void init() {
-      BLS.setBlsImplementation(BlstBLS12381.INSTANCE.get());
-    }
-
-    @AfterAll
-    public static void cleanup() {
-      BLS.resetBlsImplementation();
-    }
-  }
-
-  public static class MikuliSignatureTest extends BLSSignatureTest {
-    @BeforeAll
-    public static void init() {
-      BLS.setBlsImplementation(MikuliBLS12381.INSTANCE);
-    }
-
-    @AfterAll
-    public static void cleanup() {
-      BLS.resetBlsImplementation();
-    }
-  }
 
   @Test
   void succeedsWhenEqualsReturnsTrueForTheSameEmptySignature() {
@@ -98,21 +71,21 @@ abstract class BLSSignatureTest {
 
   @Test
   void succeedsWhenEqualsReturnsTrueForTheSameSignature() {
-    BLSSignature signature = BLSSignature.random(42);
+    BLSSignature signature = BLSTestUtil.randomSignature(42);
     assertEquals(signature, signature);
     assertEquals(signature.hashCode(), signature.hashCode());
   }
 
   @Test
   void succeedsWhenEqualsReturnsFalseForDifferentSignatures() {
-    BLSSignature signature1 = BLSSignature.random(42);
-    BLSSignature signature2 = BLSSignature.random(43);
+    BLSSignature signature1 = BLSTestUtil.randomSignature(42);
+    BLSSignature signature2 = BLSTestUtil.randomSignature(43);
     assertNotEquals(signature1, signature2);
   }
 
   @Test
   void succeedsWhenRoundtripSSZReturnsTheSameSignature() {
-    BLSSignature signature1 = BLSSignature.random(65);
+    BLSSignature signature1 = BLSTestUtil.randomSignature(65);
     BLSSignature signature2 = BLSSignature.fromSSZBytes(signature1.toSSZBytes());
     assertEquals(signature1, signature2);
   }
@@ -132,9 +105,52 @@ abstract class BLSSignatureTest {
 
   @Test
   void roundtripEncodeDecodeCompressed() {
-    BLSSignature signature = BLSSignature.random(513);
+    BLSSignature signature = BLSTestUtil.randomSignature(513);
     final BLSSignature result = BLSSignature.fromBytesCompressed(signature.toBytesCompressed());
     assertEquals(signature, result);
     assertEquals(signature.hashCode(), result.hashCode());
+  }
+
+  @Test
+  void succeedsWhenEqualsReturnsTrueForInvalidSignatures() {
+    final Bytes rawData = Bytes.fromHexString("11".repeat(96));
+    final BLSSignature signature1 = BLSSignature.fromBytesCompressed(rawData);
+    final BLSSignature signature2 = BLSSignature.fromBytesCompressed(rawData);
+    assertEquals(signature1, signature2);
+    assertEquals(signature1.hashCode(), signature2.hashCode());
+  }
+
+  @Test
+  void succeedsWhenEqualsReturnsFalseForDifferentInvalidSignatures() {
+    final BLSSignature signature1 =
+        BLSSignature.fromBytesCompressed(Bytes.fromHexString("11".repeat(96)));
+    final BLSSignature signature2 =
+        BLSSignature.fromBytesCompressed(Bytes.fromHexString("22".repeat(96)));
+    assertNotEquals(signature1, signature2);
+  }
+
+  @Test
+  void succeedsWhenInfiniteSignatureIsInfinite() {
+    final BLSSignature signature =
+        BLSSignature.fromBytesCompressed(
+            Bytes.fromHexString(
+                "0x"
+                    + "c000000000000000000000000000000000000000000000000000000000000000"
+                    + "0000000000000000000000000000000000000000000000000000000000000000"
+                    + "0000000000000000000000000000000000000000000000000000000000000000"));
+    assertThat(signature.isInfinity()).isTrue();
+  }
+
+  @Test
+  void succeedsWhenNonInfiniteSignatureIsNotInfinite() {
+    BLSSignature signature = BLSTestUtil.randomSignature(513);
+    assertThat(signature.isInfinity()).isFalse();
+  }
+
+  @Test
+  void succeedsWhenInvalidSignatureIsNotInfinite() {
+    final BLSSignature signature =
+        BLSSignature.fromBytesCompressed(Bytes.fromHexString("11".repeat(96)));
+    assertThat(signature.isInfinity()).isFalse();
   }
 }

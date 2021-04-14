@@ -8,9 +8,9 @@
 	<maven.compiler.target>1.8</maven.compiler.target>
  </properties>
  <repositories>
- <repository>
+ 	<repository>
         <id>consensys</id>
-        <url>https://artifacts.consensys.net/public/maven/maven/</url>
+        <url>https://cloudsmith.io/~consensys/repos/teku/packages/</url>
         <releases>
            <enabled>true</enabled>
         </releases>
@@ -18,7 +18,16 @@
           <enabled>false</enabled>
        </snapshots>
      </repository>
- 
+  	<repository>
+        <id>discoverydataservice</id>
+        <url>https://maven.discoverydataservice.net/artifactory/libs-snapshot/</url>
+        <releases>
+           <enabled>true</enabled>
+        </releases>
+        <snapshots>
+          <enabled>true</enabled>
+       </snapshots>
+     </repository>
  </repositories>  
   <dependencies>
 
@@ -27,7 +36,6 @@
 	    <groupId>org.apache.tuweni</groupId>
 	    <artifactId>tuweni-bytes</artifactId>
 	    <version>1.1.0</version>
-	    <type>pom</type>
 	</dependency>
 	<!-- https://mvnrepository.com/artifact/org.apache.tuweni/tuweni-crypto -->
 	<dependency>
@@ -42,14 +50,14 @@
 	    <version>1.1.0</version>
 	</dependency>
 	<dependency>
-	  <groupId>org.rivnetwork</groupId>
-	  <artifactId>jblst</artifactId>
-	  <version>0.0.1-SNAPSHOT</version>
-	</dependency>
-	<!--TODO migrate to 0.3.3-1 version dependency>
 	  <groupId>tech.pegasys</groupId>
 	  <artifactId>jblst</artifactId>
 	  <version>0.3.3-1</version>
+	</dependency>
+	<!-- dependency>
+	  <groupId>tech.pegasys</groupId>
+	  <artifactId>jblst</artifactId>
+	  <version>0.3.2-RELEASE</version>
 	</dependency-->
 	<!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
 	<dependency>
@@ -57,11 +65,6 @@
 	    <artifactId>log4j-core</artifactId>
 	    <version>2.13.3</version>
 	</dependency>
-  	<dependency>
-  	  <groupId>org.rivnetwork</groupId>
-	  <artifactId>ssz</artifactId>
-	  <version>0.0.1-SNAPSHOT</version>
-  	</dependency>
 	<!-- https://mvnrepository.com/artifact/org.openjdk.jmh/jmh-generator-annprocess -->
 	<dependency>
 	    <groupId>org.openjdk.jmh</groupId>

@@ -24,37 +24,9 @@ import java.util.List;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes48;
 import org.apache.tuweni.ssz.SSZ;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import tech.pegasys.teku.bls.impl.blst.BlstBLS12381;
-import tech.pegasys.teku.bls.impl.mikuli.MikuliBLS12381;
 
 abstract class BLSPublicKeyTest {
-
-  public static class BlstPublicKeyTest extends BLSPublicKeyTest {
-    @BeforeAll
-    public static void init() {
-      BLS.setBlsImplementation(BlstBLS12381.INSTANCE.get());
-    }
-
-    @AfterAll
-    public static void cleanup() {
-      BLS.resetBlsImplementation();
-    }
-  }
-
-  public static class MikuliPublicKeyTest extends BLSPublicKeyTest {
-    @BeforeAll
-    public static void init() {
-      BLS.setBlsImplementation(MikuliBLS12381.INSTANCE);
-    }
-
-    @AfterAll
-    public static void cleanup() {
-      BLS.resetBlsImplementation();
-    }
-  }
 
   private static final Bytes InfinityPublicKey =
       Bytes.fromHexString(
@@ -65,13 +37,13 @@ abstract class BLSPublicKeyTest {
     assertThatCode(
             () ->
                 BLSPublicKey.fromBytesCompressedValidate(
-                    BLSPublicKey.random(1).toBytesCompressed()))
+                    BLSTestUtil.randomPublicKey(1).toBytesCompressed()))
         .doesNotThrowAnyException();
   }
 
   @Test
   void fromBytesCompressedValidate_throwsOnInvalidData() {
-    BLSPublicKey publicKey = BLSPublicKey.random(1);
+    BLSPublicKey publicKey = BLSTestUtil.randomPublicKey(1);
     assertThatThrownBy(
             () ->
                 BLSPublicKey.fromBytesCompressedValidate(
@@ -160,20 +132,20 @@ abstract class BLSPublicKeyTest {
 
   @Test
   void succeedsWhenEqualsReturnsTrueForTheSamePublicKey() {
-    BLSPublicKey publicKey = BLSPublicKey.random(42);
+    BLSPublicKey publicKey = BLSTestUtil.randomPublicKey(42);
     assertEquals(publicKey, publicKey);
   }
 
   @Test
   void succeedsWhenEqualsReturnsFalseForDifferentPublicKeys() {
-    BLSPublicKey publicKey1 = BLSPublicKey.random(1);
-    BLSPublicKey publicKey2 = BLSPublicKey.random(2);
+    BLSPublicKey publicKey1 = BLSTestUtil.randomPublicKey(1);
+    BLSPublicKey publicKey2 = BLSTestUtil.randomPublicKey(2);
     assertNotEquals(publicKey1, publicKey2);
   }
 
   @Test
   public void succeedsWhenEqualsReturnsTrueForEquivalentPublicKeysCreatedFromDifferentRawBytes() {
-    BLSPublicKey publicKey1 = BLSPublicKey.random(1);
+    BLSPublicKey publicKey1 = BLSTestUtil.randomPublicKey(1);
     Bytes compressedBytes = publicKey1.toBytesCompressed();
 
     BLSPublicKey publicKey2 = BLSPublicKey.fromSSZBytes(compressedBytes);
@@ -184,7 +156,7 @@ abstract class BLSPublicKeyTest {
 
   @Test
   void succeedsWhenRoundtripSSZReturnsTheSamePublicKey() {
-    BLSPublicKey publicKey1 = BLSPublicKey.random(42);
+    BLSPublicKey publicKey1 = BLSTestUtil.randomPublicKey(42);
     BLSPublicKey publicKey2 = BLSPublicKey.fromSSZBytes(publicKey1.toSSZBytes());
     assertEquals(publicKey1, publicKey2);
   }

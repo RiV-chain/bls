@@ -21,13 +21,6 @@ import org.apache.tuweni.bytes.Bytes;
 public interface Signature {
 
   /**
-   * Signature uncompressed serialization
-   *
-   * @return byte array of size 192
-   */
-  Bytes toBytesUncompressed();
-
-  /**
    * Signature serialization to compressed form
    *
    * @return byte array of size 96
@@ -42,7 +35,7 @@ public interface Signature {
    * @return True if the verification is successful, false otherwise
    */
   boolean verify(List<PublicKeyMessagePair> keysToMessages);
-  
+
   /**
    * Verify that this aggregated signature is correct for the given pairs of public keys and
    * messages.
@@ -50,7 +43,8 @@ public interface Signature {
    * @param keysToMessages the list of public key and message pairs
    * @return True if the verification is successful, false otherwise
    */
-  boolean verify(List<PublicKeyMessagePair> keysToMessages, Bytes dst, int index);
+  boolean verify(List<PublicKeyMessagePair> keysToMessages, String dst);
+
 
   /**
    * Verifies this aggregate signature against a message using the list of public keys.
@@ -85,7 +79,14 @@ public interface Signature {
    * @param dst domain separation tag (DST), not null
    * @return True if the verification is successful, false otherwise
    */
-  boolean verify(PublicKey publicKey, Bytes message, Bytes dst);
+  boolean verify(PublicKey publicKey, Bytes message, String dst);
+
+  /**
+   * Determine if this Signature is the `G2_POINT_AT_INFINITY`.
+   *
+   * @return true if this signature is the point at infinity, otherwise false.
+   */
+  boolean isInfinity();
 
   /** Implementation must override */
   @Override

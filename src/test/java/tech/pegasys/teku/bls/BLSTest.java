@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,41 +28,13 @@ import java.util.stream.Stream;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.bytes.Bytes48;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import tech.pegasys.teku.bls.impl.blst.BlstBLS12381;
-import tech.pegasys.teku.bls.impl.mikuli.MikuliBLS12381;
 
 public abstract class BLSTest {
 
-  public static class BlstBlsTest extends BLSTest {
-    @BeforeAll
-    public static void init() {
-      BLS.setBlsImplementation(BlstBLS12381.INSTANCE.get());
-    }
-
-    @AfterAll
-    public static void cleanup() {
-      BLS.resetBlsImplementation();
-    }
-  }
-
-  public static class MikuliBlsTest extends BLSTest {
-    @BeforeAll
-    public static void init() {
-      BLS.setBlsImplementation(MikuliBLS12381.INSTANCE);
-    }
-
-    @AfterAll
-    public static void cleanup() {
-      BLS.resetBlsImplementation();
-    }
-  }
-
   @Test
   void succeedsWhenWeCanSignAndVerify() {
-    BLSKeyPair keyPair = BLSKeyPair.random(42);
+    BLSKeyPair keyPair = BLSTestUtil.randomKeyPair(42);
     Bytes message = Bytes.wrap("Hello, world!".getBytes(UTF_8));
     BLSSignature signature = BLS.sign(keyPair.getSecretKey(), message);
     assertTrue(BLS.verify(keyPair.getPublicKey(), message, signature));
@@ -74,7 +45,9 @@ public abstract class BLSTest {
   void succeedsWhenCallingVerifyWithEmptySignatureReturnsFalse() {
     assertFalse(
         BLS.verify(
-            BLSPublicKey.random(17), Bytes.wrap("Test".getBytes(UTF_8)), BLSSignature.empty()));
+            BLSTestUtil.randomPublicKey(17),
+            Bytes.wrap("Test".getBytes(UTF_8)),
+            BLSSignature.empty()));
   }
 
   @Test
@@ -82,26 +55,30 @@ public abstract class BLSTest {
     BLSConstants.disableBLSVerification();
     assertTrue(
         BLS.verify(
-            BLSPublicKey.random(17), Bytes.wrap("Test".getBytes(UTF_8)), BLSSignature.empty()));
+            BLSTestUtil.randomPublicKey(17),
+            Bytes.wrap("Test".getBytes(UTF_8)),
+            BLSSignature.empty()));
 
     BLSConstants.enableBLSVerification();
     assertFalse(
         BLS.verify(
-            BLSPublicKey.random(17), Bytes.wrap("Test".getBytes(UTF_8)), BLSSignature.empty()));
+            BLSTestUtil.randomPublicKey(17),
+            Bytes.wrap("Test".getBytes(UTF_8)),
+            BLSSignature.empty()));
   }
 
   @Test
   void succeedsWhenAggregatingASingleSignatureReturnsTheSameSignature() {
-    BLSSignature signature = BLSSignature.random(1);
+    BLSSignature signature = BLSTestUtil.randomSignature(1);
     assertEquals(signature, BLS.aggregate(singletonList(signature)));
   }
 
   @Test
   // The empty signature is not a valid signature
-  void succeedsWhenPassingEmptySignatureToAggregateSignaturesThrowsIllegalArgumentException() {
-    BLSSignature signature1 = BLSSignature.random(1);
+  void passingEmptySignatureToAggregateSignaturesThrowsIllegalArgumentException() {
+    BLSSignature signature1 = BLSTestUtil.randomSignature(1);
     BLSSignature signature2 = BLSSignature.empty();
-    BLSSignature signature3 = BLSSignature.random(3);
+    BLSSignature signature3 = BLSTestUtil.randomSignature(3);
     assertThrows(
         IllegalArgumentException.class,
         () -> BLS.aggregate(Arrays.asList(signature1, signature2, signature3)));
@@ -110,9 +87,9 @@ public abstract class BLSTest {
   @Test
   void succeedsWhenCorrectlySigningAndVerifyingAggregateSignaturesReturnsTrue() {
     Bytes message = Bytes.wrap("Hello, world!".getBytes(UTF_8));
-    BLSKeyPair keyPair1 = BLSKeyPair.random(1);
-    BLSKeyPair keyPair2 = BLSKeyPair.random(2);
-    BLSKeyPair keyPair3 = BLSKeyPair.random(3);
+    BLSKeyPair keyPair1 = BLSTestUtil.randomKeyPair(1);
+    BLSKeyPair keyPair2 = BLSTestUtil.randomKeyPair(2);
+    BLSKeyPair keyPair3 = BLSTestUtil.randomKeyPair(3);
 
     List<BLSPublicKey> publicKeys =
         Arrays.asList(keyPair1.getPublicKey(), keyPair2.getPublicKey(), keyPair3.getPublicKey());
@@ -152,9 +129,9 @@ public abstract class BLSTest {
   void succeedsWhenAggregateVerifyWithRepeatedMessagesReturnsFalse() {
     Bytes message1 = Bytes.wrap("Hello, world 1!".getBytes(UTF_8));
     Bytes message2 = Bytes.wrap("Hello, world 2!".getBytes(UTF_8));
-    BLSKeyPair keyPair1 = BLSKeyPair.random(1);
-    BLSKeyPair keyPair2 = BLSKeyPair.random(2);
-    BLSKeyPair keyPair3 = BLSKeyPair.random(3);
+    BLSKeyPair keyPair1 = BLSTestUtil.randomKeyPair(1);
+    BLSKeyPair keyPair2 = BLSTestUtil.randomKeyPair(2);
+    BLSKeyPair keyPair3 = BLSTestUtil.randomKeyPair(3);
 
     List<BLSPublicKey> publicKeys =
         Arrays.asList(keyPair1.getPublicKey(), keyPair2.getPublicKey(), keyPair3.getPublicKey());
@@ -174,9 +151,9 @@ public abstract class BLSTest {
     Bytes message1 = Bytes.wrap("Hello, world 1!".getBytes(UTF_8));
     Bytes message2 = Bytes.wrap("Hello, world 2!".getBytes(UTF_8));
     Bytes message3 = Bytes.wrap("Hello, world 3!".getBytes(UTF_8));
-    BLSKeyPair keyPair1 = BLSKeyPair.random(1);
-    BLSKeyPair keyPair2 = BLSKeyPair.random(2);
-    BLSKeyPair keyPair3 = BLSKeyPair.random(3);
+    BLSKeyPair keyPair1 = BLSTestUtil.randomKeyPair(1);
+    BLSKeyPair keyPair2 = BLSTestUtil.randomKeyPair(2);
+    BLSKeyPair keyPair3 = BLSTestUtil.randomKeyPair(3);
 
     List<BLSPublicKey> publicKeys =
         Arrays.asList(keyPair1.getPublicKey(), keyPair2.getPublicKey(), keyPair3.getPublicKey());
@@ -190,43 +167,26 @@ public abstract class BLSTest {
 
     assertTrue(BLS.aggregateVerify(publicKeys, messages, aggregatedSignature));
   }
-  
+
   @Test
-  void succeedsWhenAggregateVerifyHigherLevel() {
+  void succeedsWhenAggregateVerifyWithInfinitePairReturnsFalse() {
     Bytes message1 = Bytes.wrap("Hello, world 1!".getBytes(UTF_8));
     Bytes message2 = Bytes.wrap("Hello, world 2!".getBytes(UTF_8));
     Bytes message3 = Bytes.wrap("Hello, world 3!".getBytes(UTF_8));
-    Bytes message4 = Bytes.wrap("Hello, world 4!".getBytes(UTF_8));
-    BLSKeyPair keyPair1 = BLSKeyPair.random(1);
-    BLSKeyPair keyPair2 = BLSKeyPair.random(2);
-    BLSKeyPair keyPair3 = BLSKeyPair.random(3);
-    BLSKeyPair keyPair4 = BLSKeyPair.random(4);
+    BLSKeyPair keyPair1 = BLSTestUtil.randomKeyPair(1);
+    BLSKeyPair keyPair2 = BLSTestUtil.randomKeyPair(2);
 
-    List<BLSPublicKey> publicKeys1 =
-        Arrays.asList(keyPair1.getPublicKey(), keyPair2.getPublicKey());
-    List<Bytes> messages1 = Arrays.asList(message1, message2);
-    List<BLSSignature> signatures1 =
+    List<BLSPublicKey> publicKeys =
+        Arrays.asList(keyPair1.getPublicKey(), keyPair2.getPublicKey(), infinityG1());
+    List<Bytes> messages = Arrays.asList(message1, message2, message3);
+    List<BLSSignature> signatures =
         Arrays.asList(
             BLS.sign(keyPair1.getSecretKey(), message1),
-            BLS.sign(keyPair2.getSecretKey(), message2));
-    BLSSignature aggregatedSignature1 = BLS.aggregate(signatures1);
-    
-    List<BLSPublicKey> publicKeys2 =
-            Arrays.asList(keyPair3.getPublicKey(), keyPair4.getPublicKey());
-        List<Bytes> messages2 = Arrays.asList(message3, message4);
-        List<BLSSignature> signatures2 =
-            Arrays.asList(
-                BLS.sign(keyPair3.getSecretKey(), message3),
-                BLS.sign(keyPair4.getSecretKey(), message4));
-        BLSSignature aggregatedSignature2 = BLS.aggregate(signatures2);
-    
-     List<BLSSignature> signatures =
-                Arrays.asList(
-                		aggregatedSignature1,
-                		aggregatedSignature2);
-     BLSSignature aggregatedSignature = BLS.aggregate(signatures);
+            BLS.sign(keyPair2.getSecretKey(), message2),
+            infinityG2());
+    BLSSignature aggregatedSignature = BLS.aggregate(signatures);
 
-    assertTrue(BLS.aggregateVerify(publicKeys1, messages1, aggregatedSignature1));
+    assertFalse(BLS.aggregateVerify(publicKeys, messages, aggregatedSignature));
   }
 
   @Test
@@ -247,101 +207,100 @@ public abstract class BLSTest {
     assertFalse(BLS.fastAggregateVerify(new ArrayList<>(), Bytes.EMPTY, BLSSignature.empty()));
   }
 
-  static final BLSPublicKey infinityG1 =
-      BLSPublicKey.fromBytesCompressed(
-          Bytes48.fromHexString(
-              "0x"
-                  + "c0000000000000000000000000000000"
-                  + "00000000000000000000000000000000"
-                  + "00000000000000000000000000000000"));
-  static final BLSSignature infinityG2 =
-      BLSSignature.fromBytesCompressed(
-          Bytes.fromHexString(
-              "0x"
-                  + "c000000000000000000000000000000000000000000000000000000000000000"
-                  + "0000000000000000000000000000000000000000000000000000000000000000"
-                  + "0000000000000000000000000000000000000000000000000000000000000000"));
-  static final BLSSecretKey zeroSK = BLSSecretKey.fromBytes(Bytes32.ZERO);
+  static BLSPublicKey infinityG1() {
+    return BLSPublicKey.fromBytesCompressed(
+        Bytes48.fromHexString(
+            "0x"
+                + "c0000000000000000000000000000000"
+                + "00000000000000000000000000000000"
+                + "00000000000000000000000000000000"));
+  }
+
+  static BLSSignature infinityG2() {
+    return BLSSignature.fromBytesCompressed(
+        Bytes.fromHexString(
+            "0x"
+                + "c000000000000000000000000000000000000000000000000000000000000000"
+                + "0000000000000000000000000000000000000000000000000000000000000000"
+                + "0000000000000000000000000000000000000000000000000000000000000000"));
+  }
+
+  static BLSSecretKey zeroSK() {
+    return BLSSecretKey.fromBytes(Bytes32.ZERO);
+  }
 
   @Test
-  void succeedsWhenPubkeyAndSignatureBothTheIdentityIsOK() {
-    // Any message should verify
+  void succeedsWhenPubkeyAndSignatureBothTheIdentityIsFailed() {
     Bytes message = Bytes.wrap("Hello, world!".getBytes(UTF_8));
-    assertTrue(BLS.verify(infinityG1, message, infinityG2));
+    assertFalse(BLS.verify(infinityG1(), message, infinityG2()));
   }
 
   @Test
   void succeedsWhenZeroSecretKeyGivesInfinitePublicKey() {
-    assertEquals(infinityG1, new BLSPublicKey(zeroSK));
+    assertEquals(infinityG1(), new BLSPublicKey(zeroSK()));
   }
 
   @Test
-  void succeedsWhenInfinitePublicKeyGivesInfiniteSignature() {
-    // Any message should result in the signature at infinity
+  void succeedsWhenSigningWithZeroPKeyThrows() {
     Bytes message = Bytes.wrap("Hello, world!".getBytes(UTF_8));
-    assertEquals(infinityG2, BLS.sign(zeroSK, message));
+    assertThrows(IllegalArgumentException.class, () -> BLS.sign(zeroSK(), message));
   }
 
   @Test
   void aggregateInfinitePublicKeyAndSignature() {
-    BLSKeyPair keyPair1 = BLSKeyPair.random(1);
-    BLSKeyPair keyPairInf = new BLSKeyPair(zeroSK);
+    BLSKeyPair keyPair1 = BLSTestUtil.randomKeyPair(1);
+    BLSKeyPair keyPairInf = new BLSKeyPair(zeroSK());
 
     Bytes message = Bytes.wrap("Hello, world!".getBytes(UTF_8));
     BLSSignature sig1 = BLS.sign(keyPair1.getSecretKey(), message);
-    BLSSignature sigInf = BLS.sign(keyPairInf.getSecretKey(), message);
 
     BLSPublicKey pubKeyAggr =
         BLSPublicKey.aggregate(List.of(keyPair1.getPublicKey(), keyPairInf.getPublicKey()));
-    BLSSignature sigAggr = BLS.aggregate(List.of(sig1, sigInf));
+    BLSSignature sigAggr = BLS.aggregate(List.of(sig1, infinityG2()));
     boolean res1 = BLS.verify(pubKeyAggr, message, sigAggr);
-    assertTrue(res1);
+    assertFalse(res1);
   }
 
   @Test
   void batchVerify2InfinitePublicKeyAndSignature() {
-    BLSKeyPair keyPairInf = new BLSKeyPair(zeroSK);
+    BLSKeyPair keyPairInf = new BLSKeyPair(zeroSK());
 
     Bytes message = Bytes.wrap("Hello, world!".getBytes(UTF_8));
-    BLSSignature sigInf = BLS.sign(keyPairInf.getSecretKey(), message);
 
     BatchSemiAggregate semiAggregate1 =
-        BLS.prepareBatchVerify(0, List.of(keyPairInf.getPublicKey()), message, sigInf);
+        BLS.prepareBatchVerify(0, List.of(keyPairInf.getPublicKey()), message, infinityG2());
     BatchSemiAggregate semiAggregateInf =
-        BLS.prepareBatchVerify(1, List.of(keyPairInf.getPublicKey()), message, sigInf);
+        BLS.prepareBatchVerify(1, List.of(keyPairInf.getPublicKey()), message, infinityG2());
 
     boolean res1 = BLS.completeBatchVerify(List.of(semiAggregate1, semiAggregateInf));
-    assertTrue(res1);
+    assertFalse(res1);
   }
 
   @Test
   void batchVerifyInfinitePublicKeyAndSignature() {
-    BLSKeyPair keyPair1 = BLSKeyPair.random(1);
-    BLSKeyPair keyPairInf = new BLSKeyPair(zeroSK);
+    BLSKeyPair keyPair1 = BLSTestUtil.randomKeyPair(1);
+    BLSKeyPair keyPairInf = new BLSKeyPair(zeroSK());
 
     Bytes message = Bytes.wrap("Hello, world!".getBytes(UTF_8));
     BLSSignature sig1 = BLS.sign(keyPair1.getSecretKey(), message);
-    BLSSignature sigInf = BLS.sign(keyPairInf.getSecretKey(), message);
 
     BatchSemiAggregate semiAggregate1 =
         BLS.prepareBatchVerify(0, List.of(keyPair1.getPublicKey()), message, sig1);
     BatchSemiAggregate semiAggregateInf =
-        BLS.prepareBatchVerify(1, List.of(keyPairInf.getPublicKey()), message, sigInf);
+        BLS.prepareBatchVerify(1, List.of(keyPairInf.getPublicKey()), message, infinityG2());
 
     boolean res1 = BLS.completeBatchVerify(List.of(semiAggregate1, semiAggregateInf));
-    assertTrue(res1);
+    assertFalse(res1);
   }
 
   @Test
   void batchVerifyInvalidInfiniteSignature() {
-    BLSKeyPair keyPair1 = BLSKeyPair.random(1);
-    BLSKeyPair keyPairInf = new BLSKeyPair(zeroSK);
+    BLSKeyPair keyPair1 = BLSTestUtil.randomKeyPair(1);
 
     Bytes message = Bytes.wrap("Hello, world!".getBytes(UTF_8));
-    BLSSignature sigInf = BLS.sign(keyPairInf.getSecretKey(), message);
 
     BatchSemiAggregate semiAggregate =
-        BLS.prepareBatchVerify(0, List.of(keyPair1.getPublicKey()), message, sigInf);
+        BLS.prepareBatchVerify(0, List.of(keyPair1.getPublicKey()), message, infinityG2());
 
     boolean res1 = BLS.completeBatchVerify(List.of(semiAggregate));
     assertFalse(res1);
@@ -365,10 +324,8 @@ public abstract class BLSTest {
 
   @Test
   void succeedsWhenWeCanSignAndVerifyWithValidDST() {
-    final Bytes DST =
-        Bytes.wrap(
-            "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_".getBytes(StandardCharsets.US_ASCII));
-    final BLSKeyPair keyPair = BLSKeyPair.random(42);
+    final String DST = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_";
+    final BLSKeyPair keyPair = BLSTestUtil.randomKeyPair(42);
     final Bytes message = Bytes.wrap("Hello, world!".getBytes(UTF_8));
     final BLSSignature signature = BLS.sign(keyPair.getSecretKey(), message, DST);
     assertTrue(BLS.verify(keyPair.getPublicKey(), message, signature, DST));
@@ -376,10 +333,8 @@ public abstract class BLSTest {
 
   @Test
   void verifyWithDifferentDSTFails() {
-    final Bytes DST =
-        Bytes.wrap(
-            "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_".getBytes(StandardCharsets.US_ASCII));
-    final BLSKeyPair keyPair = BLSKeyPair.random(42);
+    final String DST = "BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_NUL_";
+    final BLSKeyPair keyPair = BLSTestUtil.randomKeyPair(42);
     final Bytes message = Bytes.wrap("Hello, world!".getBytes(UTF_8));
     final BLSSignature signature = BLS.sign(keyPair.getSecretKey(), message, DST);
     assertFalse(BLS.verify(keyPair.getPublicKey(), message, signature)); // uses ETH2_DST
