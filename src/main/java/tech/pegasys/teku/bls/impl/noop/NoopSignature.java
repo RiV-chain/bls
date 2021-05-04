@@ -14,41 +14,42 @@
 package tech.pegasys.teku.bls.impl.noop;
 
 import java.util.List;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import tech.pegasys.teku.bls.impl.PublicKey;
 import tech.pegasys.teku.bls.impl.PublicKeyMessagePair;
 import tech.pegasys.teku.bls.impl.mikuli.MikuliSignature;
 
 public class NoopSignature extends MikuliSignature {
-  private static final Logger LOG = LogManager.getLogger();
+	private static final Logger log = LoggerFactory.getLogger(NoopSignature.class);
 
-  public NoopSignature(MikuliSignature signature) {
-    super(signature);
-  }
+	public NoopSignature(MikuliSignature signature) {
+		super(signature);
+	}
 
-  @Override
-  public boolean verify(List<PublicKeyMessagePair> keysToMessages) {
-    LOG.warn("BLS verification is disabled");
-    return true;
-  }
+	@Override
+	public boolean verify(List<PublicKeyMessagePair> keysToMessages) {
+		log.warn("BLS verification is disabled");
+		return true;
+	}
 
-  @Override
-  public boolean verify(List<PublicKey> publicKeys, Bytes message) {
-    LOG.warn("BLS verification is disabled");
-    return true;
-  }
+	@Override
+	public boolean verify(List<PublicKey> publicKeys, Bytes message) {
+		log.warn("BLS verification is disabled");
+		return true;
+	}
 
-  @Override
-  public boolean verify(PublicKey publicKey, Bytes message, String dst) {
-    LOG.warn("BLS verification is disabled");
-    return true;
-  }
+	@Override
+	public boolean verify(PublicKey publicKey, Bytes message, String dst) {
+		log.warn("BLS verification is disabled");
+		return true;
+	}
 
-  @Override
-  public boolean verify(PublicKey publicKey, Bytes message) {
-    LOG.warn("BLS verification is disabled");
-    return true;
-  }
+	@Override
+	public boolean verify(PublicKey publicKey, Bytes message) {
+		log.warn("BLS verification is disabled");
+		return true;
+	}
 }

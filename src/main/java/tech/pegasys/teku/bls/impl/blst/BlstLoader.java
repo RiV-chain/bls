@@ -15,8 +15,10 @@ package tech.pegasys.teku.bls.impl.blst;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Optional;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import tech.pegasys.teku.bls.impl.BLS12381;
 
 /**
@@ -29,7 +31,7 @@ import tech.pegasys.teku.bls.impl.BLS12381;
  * does not trigger those classes to load.
  */
 public class BlstLoader {
-  private static final Logger LOG = LogManager.getLogger();
+	private static final Logger log = LoggerFactory.getLogger(BlstLoader.class);
 
   public static Optional<BLS12381> INSTANCE = loadBlst();
 
@@ -42,7 +44,7 @@ public class BlstLoader {
         | NoSuchMethodException
         | IllegalAccessException
         | ClassNotFoundException e) {
-      LOG.debug("Couldn't load native BLS library", e);
+    	log.debug("Couldn't load native BLS library", e);
       return Optional.empty();
     }
   }

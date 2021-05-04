@@ -6,6 +6,7 @@
  <properties>
 	<maven.compiler.source>1.8</maven.compiler.source>
 	<maven.compiler.target>1.8</maven.compiler.target>
+	<slf4j.version>1.7.30</slf4j.version>
  </properties>
  <repositories>
  	<repository>
@@ -60,11 +61,22 @@
 	  <version>0.3.2-RELEASE</version>
 	</dependency-->
 	<!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
-	<dependency>
+	<!-- dependency>
 	    <groupId>org.apache.logging.log4j</groupId>
 	    <artifactId>log4j-core</artifactId>
 	    <version>2.13.3</version>
-	</dependency>
+	</dependency-->
+	<dependency>
+           <groupId>org.slf4j</groupId>
+           <artifactId>slf4j-api</artifactId>
+           <version>${slf4j.version}</version>
+       </dependency>
+		<dependency>
+		    <groupId>org.slf4j</groupId>
+		    <artifactId>slf4j-simple</artifactId>
+		    <version>${slf4j.version}</version>
+		</dependency>
+
 	<!-- https://mvnrepository.com/artifact/org.openjdk.jmh/jmh-generator-annprocess -->
 	<dependency>
 	    <groupId>org.openjdk.jmh</groupId>

@@ -20,24 +20,22 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.ssz.SSZ;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import tech.pegasys.teku.infrastructure.logging.LoggingConfigurator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // This test is disabled by default so that it doesn't slow down other tests
 @Disabled
 public class BLSPerformanceRunner {
-  private static final Logger LOG = LogManager.getLogger();
+	private static final Logger log = LoggerFactory.getLogger(BLSPerformanceRunner.class);
 
   public BLSPerformanceRunner() {
-    LoggingConfigurator.setAllLevels(Level.INFO);
+    
   }
 
   private Long executeRun(Runnable r, Integer count) {
@@ -73,18 +71,18 @@ public class BLSPerformanceRunner {
                 // Verify the aggregate signatures and keys
                 BLS.fastAggregateVerify(publicKeys, message, aggregateSignature);
               } catch (RuntimeException e) {
-                LOG.error("Failed", e);
+            	  log.error("Failed", e);
               }
             },
             i);
-    LOG.info("Time for 128: {}, time: {}", i, time);
+    log.info("Time for 128: {}, time: {}", i, time);
   }
 
   @ParameterizedTest()
   @MethodSource("singleAggregationCountOrder4")
   void generateRandomSignature(Integer i) {
     Long time = executeRun(BLSTestUtil::randomSignature, i);
-    LOG.info("Time for i: {}, time: {}", i, time);
+    log.info("Time for i: {}, time: {}", i, time);
   }
 
   @ParameterizedTest()
@@ -99,12 +97,12 @@ public class BLSPerformanceRunner {
               try {
                 BLS.aggregate(sigs);
               } catch (RuntimeException e) {
-                LOG.error("Aggregation failed", e);
+            	  log.error("Aggregation failed", e);
               }
             },
             1);
 
-    LOG.info("Time for i: {}, time: {}", i, time);
+    log.info("Time for i: {}, time: {}", i, time);
   }
 
   @ParameterizedTest()
@@ -115,7 +113,7 @@ public class BLSPerformanceRunner {
     BLSKeyPair keyPair1 = BLSTestUtil.randomKeyPair(1);
 
     Long time = executeRun(() -> BLS.sign(keyPair1.getSecretKey(), message), i);
-    LOG.info("Time for i: {}, time: {}", i, time);
+    log.info("Time for i: {}, time: {}", i, time);
   }
 
   @ParameterizedTest()
@@ -129,11 +127,11 @@ public class BLSPerformanceRunner {
               try {
                 BLS.aggregate(Collections.singletonList(signature));
               } catch (RuntimeException e) {
-                LOG.error("Aggregation failed", e);
+            	  log.error("Aggregation failed", e);
               }
             },
             i);
-    LOG.info("Time for i: {}, time: {}", i, time);
+    log.info("Time for i: {}, time: {}", i, time);
   }
 
   @ParameterizedTest()
@@ -142,7 +140,7 @@ public class BLSPerformanceRunner {
     Bytes emptyBytesSsz = SSZ.encode(writer -> writer.writeFixedBytes(Bytes.wrap(new byte[48])));
 
     Long time = executeRun(() -> BLSPublicKey.fromSSZBytes(emptyBytesSsz), i);
-    LOG.info("Time for i: {}, time: {}", i, time);
+    log.info("Time for i: {}, time: {}", i, time);
   }
 
   @ParameterizedTest()
@@ -151,7 +149,7 @@ public class BLSPerformanceRunner {
     BLSPublicKey emptyPublicKey = BLSPublicKey.empty();
 
     Long time = executeRun(() -> emptyPublicKey.toSSZBytes().toHexString(), i);
-    LOG.info("Time for i: {}, time: {}", i, time);
+    log.info("Time for i: {}, time: {}", i, time);
   }
 
   @ParameterizedTest()
@@ -160,7 +158,7 @@ public class BLSPerformanceRunner {
     BLSSignature signature1 = BLSTestUtil.randomSignature();
 
     Long time = executeRun(signature1::toSSZBytes, i);
-    LOG.info("Time for i: {}, time: {}", i, time);
+    log.info("Time for i: {}, time: {}", i, time);
   }
 
   @ParameterizedTest()
@@ -170,7 +168,7 @@ public class BLSPerformanceRunner {
     Bytes bytes = signature1.toSSZBytes();
 
     Long time = executeRun(() -> BLSSignature.fromSSZBytes(bytes), i);
-    LOG.info("Time for i: {}, time: {}", i, time);
+    log.info("Time for i: {}, time: {}", i, time);
   }
 
   public static Stream<Arguments> singleAggregationCount() {

@@ -23,9 +23,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import tech.pegasys.teku.bls.impl.BLS12381;
 import tech.pegasys.teku.bls.impl.DeserializeException;
 import tech.pegasys.teku.bls.impl.PublicKey;
@@ -43,7 +44,7 @@ import tech.pegasys.teku.bls.impl.mikuli.MikuliBLS12381;
  */
 public class BLS {
 
-  private static final Logger LOG = LogManager.getLogger();
+  private static final Logger log = LoggerFactory.getLogger(BLS.class);
 
   private static BLS12381 BLS_IMPL;
 
@@ -58,10 +59,10 @@ public class BLS {
   public static void resetBlsImplementation() {
     if (BlstLoader.INSTANCE.isPresent()) {
       BLS_IMPL = BlstLoader.INSTANCE.get();
-      LOG.info("BLS: loaded BLST library");
+      log.info("BLS: loaded BLST library");
     } else {
       BLS_IMPL = MikuliBLS12381.INSTANCE;
-      LOG.info("BLS: loaded Mikuli library");
+      log.info("BLS: loaded Mikuli library");
     }
   }
 
@@ -94,7 +95,7 @@ public class BLS {
    */
   public static boolean verify(BLSPublicKey publicKey, Bytes message, BLSSignature signature) {
     if (BLSConstants.VERIFICATION_DISABLED) {
-      LOG.warn("Skipping bls verification.");
+    	log.warn("Skipping bls verification.");
       return true;
     }
     try {
@@ -212,7 +213,7 @@ public class BLS {
   public static boolean fastAggregateVerify(
       List<BLSPublicKey> publicKeys, Bytes message, BLSSignature signature) {
     if (BLSConstants.VERIFICATION_DISABLED) {
-      LOG.warn("Skipping bls verification.");
+    	log.warn("Skipping bls verification.");
       return true;
     }
     if (publicKeys.isEmpty()) return false;
@@ -292,7 +293,7 @@ public class BLS {
       boolean doublePairing,
       boolean parallel) {
     if (BLSConstants.VERIFICATION_DISABLED) {
-      LOG.warn("Skipping bls verification.");
+    	log.warn("Skipping bls verification.");
       return true;
     }
     Preconditions.checkArgument(
@@ -411,7 +412,7 @@ public class BLS {
    */
   public static boolean completeBatchVerify(List<BatchSemiAggregate> preparedSignatures) {
     if (BLSConstants.VERIFICATION_DISABLED) {
-      LOG.warn("Skipping bls verification.");
+    	log.warn("Skipping bls verification.");
       return true;
     }
     List<BatchSemiAggregate> validAggregates =
@@ -452,7 +453,7 @@ public class BLS {
   public static boolean verify(
       BLSPublicKey publicKey, Bytes message, BLSSignature signature, String dst) {
     if (BLSConstants.VERIFICATION_DISABLED) {
-      LOG.warn("Skipping bls verification.");
+      log.warn("Skipping bls verification.");
       return true;
     }
     return signature.getSignature().verify(publicKey.getPublicKey(), message, dst);
