@@ -81,6 +81,7 @@
 	<dependency>
 	    <groupId>org.openjdk.jmh</groupId>
 	    <artifactId>jmh-generator-annprocess</artifactId>
+	    <scope>test</scope>
 	    <version>1.25.2</version>
 	</dependency>
 	<!-- https://mvnrepository.com/artifact/org.miracl.milagro.amcl/milagro-crypto-java -->
